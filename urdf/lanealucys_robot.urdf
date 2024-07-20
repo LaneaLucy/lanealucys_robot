@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<robot name="lanealucys_robot">
+
+  <material name="black">
+    <color rgba="0 0 0 1"/>
+  </material>
+
+  <material name="red">
+    <color rgba="1 0 0 1"/>
+  </material>
+  
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="0.2 0.14 0.07"/>
+      </geometry>
+      <origin xyz="0 0 0.06"/>
+      <material name="red"/>
+    </visual>
+  </link>
+  
+  <link name="base_laser">
+    <visual>
+      <geometry>
+        <cylinder length="0.018" radius="0.03"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+  </link>
+
+  <joint name="base_to_lidar" type="fixed">
+    <parent link="base_link"/>
+    <child link="base_laser"/>
+    <origin xyz="-0.005 0 0.139"/>
+  </joint>
+</robot>

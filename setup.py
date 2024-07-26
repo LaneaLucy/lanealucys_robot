@@ -31,6 +31,8 @@ setup(
     entry_points={
         'console_scripts': [
             'repeater = lanealucys_robot.repeater:main',
+            'tf2_broadcaster = lanealucys_robot.tf2_broadcaster:main',
+            'pose_rewriter = lanealucys_robot.pose_rewriter:main',
         ],
     },
 )

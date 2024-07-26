@@ -22,14 +22,14 @@ def generate_launch_description():
     package_name='lanealucys_robot'
     
     nav = LaunchConfiguration('nav2')
-    slam_toolbox = LaunchConfiguration('slam_toolbox')
+    slam = LaunchConfiguration('slam')
     rviz_gazebo = LaunchConfiguration('rviz_gazebo')
     rviz_nav2 = LaunchConfiguration('rviz_nav2')
 
     robot = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource([os.path.join(
                     get_package_share_directory(package_name),'launch','robot_launch.py')]), 
-                launch_arguments={'sim': 'true', 'nav2': nav, 'rviz_nav2': rviz_nav2, 'slam_toolbox': slam_toolbox, 'namespace': ''}.items()
+                launch_arguments={'sim': 'true', 'nav2': nav, 'rviz_nav2': rviz_nav2, 'slam': slam, 'namespace': ''}.items()
             )
 
     # Include the Gazebo wildthumper_playpen launch file, provided by the ardupilot_gz_bringup package
@@ -49,7 +49,7 @@ def generate_launch_description():
                 PythonLaunchDescriptionSource([os.path.join(
                     get_package_share_directory(package_name), 'launch', 'mavros_launch.py')]),
                 launch_arguments={'use_sim_time': 'true', 'respawn_mavros': 'true', 'fcu_url': 'udp://127.0.0.1:14550@', 'gcs_url': 'udp://@127.0.0.1:14552', 'pluginlists_yaml': [os.path.join(
-                    get_package_share_directory(package_name), 'config', 'mavros_launch.py')], 'mavros_pluginlists.yaml': [os.path.join(
+                    get_package_share_directory(package_name), 'config', 'mavros_pluginlists.yaml')], 'mavros_pluginlists.yaml': [os.path.join(
                     get_package_share_directory(package_name), 'config', 'mavros_config.yaml')]}.items()
             )
     
@@ -64,9 +64,15 @@ def generate_launch_description():
         ]],
         shell=True
     )
-
-
-            #'/mavros/local_position/odom'
+    
+    micro_ros_agent = Node(
+            package="micro_ros_agent",
+            executable="micro_ros_agent",
+            name="micro_ros_agent",
+            parameters=[{"use_sim_time": 'true'}],
+            output="both",
+            arguments=['udp4', '--port', '2019'],
+    )
 
 
 
@@ -77,9 +83,14 @@ def generate_launch_description():
             default_value='true',
             description='start nav2'),
         DeclareLaunchArgument(
-            'slam_toolbox',
-            default_value='true',
-            description='Start Slam_Toolbox\'s online_async_launch.py launch file'),
+            'slam',
+            choices=[
+                'slam_toolbox',
+                'cartographer',
+                'none'
+            ],
+            default_value='slam_toolbox',
+            description='which slam to use'),
         DeclareLaunchArgument(
             'rviz_gazebo',
             default_value='false',
@@ -89,15 +100,19 @@ def generate_launch_description():
             default_value='true',
             description='start nav2 rviz'),
         gazebo,
-        mavros,
-        RegisterEventHandler(
-            OnExecutionComplete(
-                target_action=odom_waiter,
-                on_completion=[
-                    LogInfo(msg='Received first odom message...'),
-                    robot
-                ]
-            )
-        ),
-        odom_waiter
+        #mavros,
+        #RegisterEventHandler(
+        #    OnExecutionComplete(
+        #        target_action=odom_waiter,
+        #        on_completion=[
+        #            LogInfo(msg='Received first odom message...'),
+        #            robot
+        #        ]
+        #    )
+        #),
+        #odom_waiter,
+        micro_ros_agent,
+        robot
     ])
+
+

@@ -26,7 +26,8 @@ def generate_launch_description():
     
     nav_start = LaunchConfiguration('nav2')
     nav2_params_file = LaunchConfiguration('nav2_params_file')
-    slam_toolbox = LaunchConfiguration('slam_toolbox')
+    #slam_toolbox = LaunchConfiguration('slam_toolbox')
+    slam = LaunchConfiguration('slam')
     slam_params_file = LaunchConfiguration('slam_params_file')
     use_sim_time = LaunchConfiguration('sim')
     rviz_nav2 = LaunchConfiguration('rviz_nav2')
@@ -45,6 +46,7 @@ def generate_launch_description():
     )
     
     robot_localization_node = Node(
+           condition=IfCondition(PythonExpression(['"', slam, '" == "slam_toolbox"'])),
            package='robot_localization',
            executable='ekf_node',
            name='ekf_filter_node',
@@ -68,6 +70,15 @@ def generate_launch_description():
             #remappings=[('/cmd_vel_out','/ap/cmd_vel')]
     )
            
+    pose_rewriter = Node(
+        package="lanealucys_robot",
+        executable="pose_rewriter",
+        parameters=[
+            {"use_sim_time": use_sim_time},
+            {"input": '/ap/pose/filtered'},
+        ],
+    )
+           
     repeater = Node(
         package="lanealucys_robot",
         executable="repeater",
@@ -88,7 +99,7 @@ def generate_launch_description():
         shell=True
     )
 
-    nav = GroupAction(
+    nav_nodes = GroupAction(
         condition=IfCondition(nav_start),
         actions=[
             PushRosNamespace(namespace),
@@ -109,16 +120,15 @@ def generate_launch_description():
                 parameters=[{'use_sim_time': use_sim_time}],
                 arguments=['-d' + os.path.join(get_package_share_directory(package_name), 'rviz', 'nav2_view.rviz')]
             ),
-            
-            #IncludeLaunchDescription(
-            #        PythonLaunchDescriptionSource([os.path.join(
-            #            get_package_share_directory('slam_toolbox'), 'launch', 'online_async_launch.py')]), 
-            #        launch_arguments={'use_sim_time': use_sim_time}.items(),
-            #        condition=IfCondition(slam_toolbox)
-            #),
+        ]
+    )
+
+    slam_nodes = GroupAction(
+        actions=[
+            PushRosNamespace(namespace),
             
             Node(
-                condition=IfCondition(slam_toolbox),
+                condition=IfCondition(PythonExpression(['"', slam, '" == "slam_toolbox"'])),
                 parameters=[
                   slam_params_file,
                   {'use_sim_time': use_sim_time}
@@ -129,32 +139,32 @@ def generate_launch_description():
                 output='screen'
             ),
             
-            #Node(
-            #    condition=UnlessCondition(slam_toolbox),
-            #    package="cartographer_ros",
-            #    executable="cartographer_node",
-            #    parameters=[{"use_sim_time": use_sim_time}],
-            #    arguments=[
-            #        "-configuration_directory",
-            #        os.path.join(get_package_share_directory(package_name), 'config'),
-            #        "-configuration_basename",
-            #        "cartographer.lua",
-            #    ],
-            #    output="screen",
-            #    remappings=[
-            #        ("/imu", "/mavros/imu/data"),
-            #        ("/odom", "/mavros/local_position/odom"),
-            #    ],
-            #),
-            #Node(
-            #    condition=UnlessCondition(slam_toolbox),
-            #    package="cartographer_ros",
-            #    executable="cartographer_occupancy_grid_node",
-            #    parameters=[
-            #        {"use_sim_time": use_sim_time},
-            #        {"resolution": 0.05},
-            #    ],
-            #),
+            Node(
+                condition=IfCondition(PythonExpression(['"', slam, '" == "cartographer"'])),
+                package="cartographer_ros",
+                executable="cartographer_node",
+                parameters=[{"use_sim_time": use_sim_time}],
+                arguments=[
+                    "-configuration_directory",
+                    os.path.join(get_package_share_directory(package_name), 'config'),
+                    "-configuration_basename",
+                    "cartographer.lua",
+                ],
+                output="screen",
+                remappings=[
+                    ("/imu", "/ap/imu/experimental/data"),
+                #    ("/odom", "/odometry"),
+                ],
+            ),
+            Node(
+                condition=IfCondition(PythonExpression(['"', slam, '" == "cartographer"'])),
+                package="cartographer_ros",
+                executable="cartographer_occupancy_grid_node",
+                parameters=[
+                    {"use_sim_time": use_sim_time},
+                    {"resolution": 0.05},
+                ],
+            ),
         ]
     )
 
@@ -163,7 +173,13 @@ def generate_launch_description():
             executable='twist_stamper',
             parameters=[{'use_sim_time': use_sim_time, 'frame_id': 'base_link'}],
             remappings=[('/cmd_vel_in','/cmd_vel'),
-                        ('/cmd_vel_out','/mavros/setpoint_velocity/cmd_vel')]
+                        ('/cmd_vel_out','/ap/cmd_vel')]
+    )
+
+    tf_relay = Node(
+            package='topic_tools',
+            executable='relay',
+            arguments=['/tf', '/ap/tf'],
     )
     
     robot = GroupAction(
@@ -171,18 +187,21 @@ def generate_launch_description():
             PushRosNamespace(namespace),
             robot_state_publisher,
             robot_localization_node,
-            repeater,
-            repeater_waiter,
-            RegisterEventHandler(
-                OnProcessExit(
-                    target_action=repeater_waiter,
-                    on_exit=[
-                        LogInfo(msg='repeater started...'),
-                        nav
-                    ]
-                )
-            ),
-            #nav
+            pose_rewriter,
+            #repeater,
+            #repeater_waiter,
+            #RegisterEventHandler(
+            #    OnProcessExit(
+            #        target_action=repeater_waiter,
+            #        on_exit=[
+            #            LogInfo(msg='repeater started...'),
+            #            nav_nodes
+            #        ]
+            #    )
+            #),
+            slam_nodes,
+            nav_nodes,
+            tf_relay,
             #joystick,
             #twist_mux,
             twist_stamper
@@ -206,10 +225,19 @@ def generate_launch_description():
             'nav2_params_file',
             default_value=os.path.join(get_package_share_directory(package_name), 'config', 'nav2_params.yaml'),
             description='Full path to the ROS2 parameters file to use for all launched nodes'),
+        #DeclareLaunchArgument(
+        #    'slam_toolbox',
+        #    default_value='true',
+        #    description='Start Slam_Toolbox\'s online_async_launch.py launch file'),
         DeclareLaunchArgument(
-            'slam_toolbox',
-            default_value='true',
-            description='Start Slam_Toolbox\'s online_async_launch.py launch file'),
+            'slam',
+            choices=[
+                'slam_toolbox',
+                'cartographer',
+                'none'
+            ],
+            default_value='slam_toolbox',
+            description='which slam to use'),
         DeclareLaunchArgument(
             'slam_params_file',
             default_value=os.path.join(get_package_share_directory(package_name), 'config', 'mapper_params_online_async.yaml'),

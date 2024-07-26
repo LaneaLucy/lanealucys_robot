@@ -95,6 +95,13 @@ def generate_launch_description():
                 get_package_share_directory("lanealucys_robot"),
                 "config",
                 "external_nav.parm",
+            )
+            + ","
+            + os.path.join(
+                pkg_ardupilot_sitl,
+                "config",
+                "default_params",
+                "dds_udp.parm",
             ),
             "sim_address": "127.0.0.1",
             "master": "tcp:127.0.0.1:5760",
@@ -152,7 +159,7 @@ def generate_launch_description():
         parameters=[
             {
                 "config_file": os.path.join(
-                    pkg_project_bringup, "config", "wildthumper_bridge.yaml"
+                    get_package_share_directory("lanealucys_robot"), "config", "wildthumper_bridge.yaml"
                 ),
                 "qos_overrides./tf_static.publisher.durability": "transient_local",
             }

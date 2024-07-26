@@ -532,7 +532,7 @@ Visualization Manager:
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /mavros/setpoint_velocity/cmd_vel
+        Value: /ap/cmd_vel
       Value: true
   Enabled: true
   Global Options:

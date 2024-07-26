@@ -13,7 +13,7 @@ from launch_ros.actions import Node, SetRemap
 
 from launch.conditions import IfCondition, UnlessCondition
 
-from launch.actions import RegisterEventHandler
+from launch.actions import RegisterEventHandler, ExecuteProcess
 from launch.event_handlers import OnProcessExit
 
 
@@ -51,10 +51,60 @@ def generate_launch_description():
       ]
     )
 
-    mavros = IncludeLaunchDescription(
+    mavros_old = IncludeLaunchDescription(
                 XMLLaunchDescriptionSource([os.path.join(
                     get_package_share_directory('mavros'),'launch','apm.launch'
                 )]), launch_arguments={'fcu_url': 'serial:///dev/ttyACM0', 'gcs_url': 'udp-b://@'}.items()
+    )
+    mavros = IncludeLaunchDescription(
+                PythonLaunchDescriptionSource([os.path.join(
+                    get_package_share_directory(package_name), 'launch', 'mavros_launch.py')]),
+                launch_arguments={
+                    'use_sim_time': 'true', 
+                    'respawn_mavros': 'true', 
+                    'fcu_url': 'serial:///dev/ttyACM0', 
+                    'gcs_url': 'udp-b://@', 
+                    'pluginlists_yaml': [os.path.join(get_package_share_directory(package_name), 'config', 'mavros_pluginlists.yaml')], 
+                    'mavros_pluginlists.yaml': [os.path.join(get_package_share_directory(package_name), 'config', 'mavros_config.yaml')
+                ]}.items()
+    )
+    
+    micro_ros_agent = Node(
+            package="micro_ros_agent",
+            executable="micro_ros_agent",
+            name="micro_ros_agent",
+            #namespace=f"{micro_ros_agent_ns}",
+            output="both",
+            arguments=['udp4 --port 2019'],
+    )
+    
+    ppp = ExecuteProcess(
+        cmd=[[
+#            'sudo ', # sudo if not root, for 'noauth' option to work
+            'pppd ', # Executable
+            '/dev/ttyUSB0 ', # Serial Port
+            '921600 ', # Baudrate
+            '192.168.13.1:192.168.13.14 ', # local IP (Companion Computer) : remote IP (FC)
+            'cdtrcts ', # Flow Control
+            'dump debug ', # Debug options
+            'local nodetach proxyarp noauth passive', # Additional options needed for Ardupilot PPP
+            'ifname ardupilot' # Sets a nice Interface Name for the waiter...
+        ]],
+        shell=True
+    )
+    
+    ppp_waiter = ExecuteProcess(
+        cmd=[[
+            'until (ip a show dev ardupilot); do sleep 1; done'
+        ]],
+        shell=True
+    )
+    
+    mavproxy = ExecuteProcess(
+        cmd=[[
+            'mavproxy.py --master=udp:192.168.13.1:14550 --out=udpbcast:0.0.0.0:14550'
+        ]],
+        shell=True
     )
 
 #    joystick = IncludeLaunchDescription(
@@ -153,7 +203,19 @@ def generate_launch_description():
             default_value='true',
             description='Start Nav2 RViz'),
         lidar,
-        mavros
+        ppp_waiter,
+        RegisterEventHandler(
+            OnProcessExit(
+                target_action=ppp_waiter,
+                on_exit=[
+                    LogInfo(msg='PPP Interface started...'),
+                    micro_ros_agent,
+                    mavproxy
+                ]
+            )
+        ),
+        ppp,
+        #micro_ros_agent,
         #joystick,
         #twist_mux,
         #nav,

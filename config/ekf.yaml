@@ -4,19 +4,34 @@ ekf_filter_node:
 # The frequency, in Hz, at which the filter will output a position estimate. Note that the filter will not begin
 # computation until it receives at least one message from one of theinputs. It will then run continuously at the
 # frequency specified here, regardless of whether it receives more measurements. Defaults to 30 if unspecified.
-        frequency: 30.0
+        frequency: 50.0
+        
+        # The period, in seconds, after which we consider a sensor to have timed out. In this event, we carry out a predict
+        # cycle on the EKF without correcting it. This parameter can be thought of as the minimum frequency with which the
+        # filter will generate new output. Defaults to 1 / frequency if not specified.
+        sensor_timeout: 1.0
 
 # ekf_localization_node and ukf_localization_node both use a 3D omnidirectional motion model. If this parameter is
 # set to true, no 3D information will be used in your state estimate. Use this if you are operating in a planar
 # environment and want to ignore the effect of small variations in the ground plane that might otherwise be detected
 # by, for example, an IMU. Defaults to false if unspecified.
-        two_d_mode: false
+        two_d_mode: true
 
 # Whether to publish the acceleration state. Defaults to false if unspecified.
-        publish_acceleration: true
+        publish_acceleration: false
 
 # Whether to broadcast the transformation over the /tf topic. Defaultsto true if unspecified.
         publish_tf: true
+        
+        print_diagnostics: true
+        
+        # Debug settings. Not for the faint of heart. Outputs a ludicrous amount of information to the file specified by
+        # debug_out_file. I hope you like matrices! Please note that setting this to true will have strongly deleterious
+        # effects on the performance of the node. Defaults to false if unspecified.
+        debug: false
+
+        # Defaults to "robot_localization_debug.txt" if unspecified. Please specify the full path.
+        #debug_out_file: /path/to/debug/file.txt
 
 # 1. Set the map_frame, odom_frame, and base_link frames to the appropriate frame names for your system.
 #     1a. If your system does not have a map_frame, just remove it, and make sure "world_frame" is set to the value of odom_frame.
@@ -32,16 +47,32 @@ ekf_filter_node:
         base_link_frame: base_link  # Defaults to "base_link" ifunspecified
         world_frame: odom           # Defaults to the value ofodom_frame if unspecified
 
-        odom0: /mavros/local_position/odom
-        odom0_config: [true,  true,  true,
-                       false, false, false,
-                       false, false, false,
-                       false, false, true,
-                       false, false, false]
+        pose0: /pose_cov
+        pose0_config: [true,  true,  false, #x, y, z
+                       false, false, false, #roll, pitch, yaw
+                       false, false, false, #vx, vy, vz
+                       false, false, false, #vroll, vpitch, vyaw
+                       false, false, false] #ax, ay, az`
+        # [ADVANCED] When measuring one pose variable with two sensors, a situation can arise in which both sensors under-
+        # report their covariances. This can lead to the filter rapidly jumping back and forth between each measurement as they
+        # arrive. In these cases, it often makes sense to (a) correct the measurement covariances, or (b) if velocity is also
+        # measured by one of the sensors, let one sensor measure pose, and the other velocity. However, doing (a) or (b) isn't
+        # always feasible, and so we expose the differential parameter. When differential mode is enabled, all absolute pose
+        # data is converted to velocity data by differentiating the absolute pose measurements. These velocities are then
+        # integrated as usual. NOTE: this only applies to sensors that provide pose measurements; setting differential to true
+        # for twist measurements has no effect.
+        pose0_differential: false
 
-        imu0: /mavros/imu/data
-        imu0_config: [false, false, false,
-                      true,  true,  true,
-                      false, false, false,
-                      false, false, false,
-                      false, false, false]
+        # [ADVANCED] When the node starts, if this parameter is true, then the first measurement is treated as a "zero point"
+        # for all future measurements. While you can achieve the same effect with the differential paremeter, the key
+        # difference is that the relative parameter doesn't cause the measurement to be converted to a velocity before
+        # integrating it. If you simply want your measurements to start at 0 for a given sensor, set this to true.
+        pose0_relative: false
+
+        imu0: /ap/imu/experimental/data
+        imu0_config: [false, false, false, #x, y, z
+                      false, false, false, #roll, pitch, yaw
+                      false, false, false, #vx, vy, vz
+                      false, false, true, #vroll, vpitch, vyaw
+                      false, false, false] #ax, ay, az`
+        imu0_remove_gravitational_acceleration: true

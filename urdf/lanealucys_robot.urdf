@@ -8,6 +8,10 @@
   <material name="red">
     <color rgba="1 0 0 1"/>
   </material>
+
+  <material name="blue">
+    <color rgba="0 0 1 1"/>
+  </material>
   
   <link name="base_link">
     <visual>
@@ -16,6 +20,16 @@
       </geometry>
       <origin xyz="0 0 0.06"/>
       <material name="red"/>
+    </visual>
+  </link>
+  
+  <link name="base_imu">
+    <visual>
+      <geometry>
+        <box size="0.54 0.36 0.13"/>
+      </geometry>
+      <origin xyz="0 0 0.065"/>
+      <material name="blue"/>
     </visual>
   </link>
   
@@ -32,5 +46,11 @@
     <parent link="base_link"/>
     <child link="base_laser"/>
     <origin xyz="-0.005 0 0.139"/>
+  </joint>
+
+  <joint name="base_to_imu" type="fixed">
+    <parent link="base_link"/>
+    <child link="base_imu"/>
+    <origin xyz="0 0 0.03"/>
   </joint>
 </robot>

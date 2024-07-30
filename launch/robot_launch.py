@@ -79,6 +79,37 @@ def generate_launch_description():
         ],
     )
            
+    tf2_broadcaster = Node(
+        package="lanealucys_robot",
+        executable="tf2_broadcaster",
+        parameters=[
+            {"use_sim_time": use_sim_time},
+            {"pose_topic": '/ap/pose/filtered'},
+        ],
+    )
+           
+    ros2_laser_scan_matcher = Node(
+        package="ros2_laser_scan_matcher",
+        executable="laser_scan_matcher",
+        parameters=[
+            {"use_sim_time": use_sim_time},
+            {"laser_frame": 'base_scan'},
+            {"publish_tf": True},
+        ],
+    )
+    
+    
+    scan_waiter = ExecuteProcess(
+        cmd=[[
+            FindExecutable(name='ros2'),
+            ' topic echo ',
+            '/scan',
+            ' sensor_msgs/msg/LaserScan',
+            ' --once'
+        ]],
+        shell=True
+    )
+           
     repeater = Node(
         package="lanealucys_robot",
         executable="repeater",
@@ -186,8 +217,20 @@ def generate_launch_description():
         actions=[
             PushRosNamespace(namespace),
             robot_state_publisher,
-            robot_localization_node,
-            pose_rewriter,
+            #robot_localization_node,
+            #pose_rewriter,
+            #tf2_broadcaster,
+            #ros2_laser_scan_matcher,
+            scan_waiter,
+            RegisterEventHandler(
+                OnProcessExit(
+                    target_action=scan_waiter,
+                    on_exit=[
+                        LogInfo(msg='/scan published...'),
+                        ros2_laser_scan_matcher
+                    ]
+                )
+            ),
             #repeater,
             #repeater_waiter,
             #RegisterEventHandler(

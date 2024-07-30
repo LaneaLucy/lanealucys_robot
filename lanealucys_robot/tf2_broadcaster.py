@@ -100,7 +100,11 @@ class FramePublisher(Node):
         
         (roll, pitch, yaw) = euler_from_quaternion(msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w)
         
-        q = quaternion_from_euler(0, 0, 0)
+        self.get_logger().info('roll: "%f"' % roll)
+        self.get_logger().info('pitch: "%f"' % pitch)
+        self.get_logger().info('yaw: "%f"' % yaw)
+        
+        q = quaternion_from_euler(0, 0, yaw)
         t.transform.rotation.x = q[0]
         t.transform.rotation.y = q[1]
         t.transform.rotation.z = q[2]

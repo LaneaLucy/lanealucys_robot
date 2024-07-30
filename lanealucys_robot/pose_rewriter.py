@@ -42,12 +42,12 @@ class pose_rewriter(Node):
         message = PoseWithCovarianceStamped()
         message.header = msg.header
         message.pose.pose = msg.pose
-        message.pose.covariance[0] = 0.0
-        message.pose.covariance[7] = 0.0
-        message.pose.covariance[14] = 0.0
-        message.pose.covariance[21] = 0.0
-        message.pose.covariance[28] = 0.0
-        message.pose.covariance[35] = 0.0
+        message.pose.covariance[0] = 0.5
+        message.pose.covariance[7] = 0.5
+        message.pose.covariance[14] = 0.5
+        message.pose.covariance[21] = 0.5
+        message.pose.covariance[28] = 0.5
+        message.pose.covariance[35] = 0.5
         message.header.frame_id = self.frame_id
         
         self.publisher_.publish(message)

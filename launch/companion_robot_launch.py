@@ -4,7 +4,7 @@ from ament_index_python.packages import get_package_share_directory
 
 
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, GroupAction
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, GroupAction, LogInfo
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
@@ -39,7 +39,7 @@ def generate_launch_description():
         {'laser_scan_topic_name': 'scan'},
         {'point_cloud_2d_topic_name': 'pointcloud2d'},
         {'frame_id': 'base_laser'},
-        {'port_name': '/dev/ttyUSB0'},
+        {'port_name': '/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0'},
         {'serial_baudrate' : 230400},
         {'laser_scan_dir': True},
         {'enable_angle_crop_func': False},
@@ -75,20 +75,20 @@ def generate_launch_description():
             name="micro_ros_agent",
             #namespace=f"{micro_ros_agent_ns}",
             output="both",
-            arguments=['udp4 --port 2019'],
+            arguments=['udp4', '--port', '2019'],
     )
     
     ppp = ExecuteProcess(
         cmd=[[
 #            'sudo ', # sudo if not root, for 'noauth' option to work
             'pppd ', # Executable
-            '/dev/ttyUSB0 ', # Serial Port
+            '/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0 ', # Serial Port
             '921600 ', # Baudrate
             '192.168.13.1:192.168.13.14 ', # local IP (Companion Computer) : remote IP (FC)
             'cdtrcts ', # Flow Control
             'dump debug ', # Debug options
-            'local nodetach proxyarp noauth passive', # Additional options needed for Ardupilot PPP
-            'ifname ardupilot' # Sets a nice Interface Name for the waiter...
+            'local nodetach proxyarp noauth passive ', # Additional options needed for Ardupilot PPP
+            'ifname ardupilot ' # Sets a nice Interface Name for the waiter...
         ]],
         shell=True
     )
@@ -102,7 +102,7 @@ def generate_launch_description():
     
     mavproxy = ExecuteProcess(
         cmd=[[
-            'mavproxy.py --master=udp:192.168.13.1:14550 --out=udpbcast:0.0.0.0:14550'
+            'mavproxy.py --non-interactive --master=udp:192.168.13.1:14550 --out=udpbcast:0.0.0.0:14550'
         ]],
         shell=True
     )

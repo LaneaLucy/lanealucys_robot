@@ -93,8 +93,9 @@ def generate_launch_description():
         executable="laser_scan_matcher",
         parameters=[
             {"use_sim_time": use_sim_time},
-            {"laser_frame": 'base_scan'},
+            {"laser_frame": 'base_laser'},
             {"publish_tf": True},
+            {"publish_odom": '/odom'},
         ],
     )
     
@@ -105,6 +106,17 @@ def generate_launch_description():
             ' topic echo ',
             '/scan',
             ' sensor_msgs/msg/LaserScan',
+            ' --once'
+        ]],
+        shell=True
+    )
+    
+    odom_waiter = ExecuteProcess(
+        cmd=[[
+            FindExecutable(name='ros2'),
+            ' topic echo ',
+            '/odom',
+            ' nav_msgs/msg/Odometry',
             ' --once'
         ]],
         shell=True
@@ -242,8 +254,19 @@ def generate_launch_description():
             #        ]
             #    )
             #),
-            slam_nodes,
-            nav_nodes,
+            odom_waiter,
+            RegisterEventHandler(
+                OnProcessExit(
+                    target_action=odom_waiter,
+                    on_exit=[
+                        LogInfo(msg='/odom published...'),
+                        slam_nodes,
+                        nav_nodes
+                    ]
+                )
+            ),
+            #slam_nodes,
+            #nav_nodes,
             tf_relay,
             #joystick,
             #twist_mux,

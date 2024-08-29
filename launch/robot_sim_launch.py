@@ -112,7 +112,7 @@ def generate_launch_description():
         #),
         #odom_waiter,
         micro_ros_agent,
-        robot
+        #robot
     ])
 
 

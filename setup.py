@@ -20,6 +20,8 @@ setup(
         (os.path.join('share', package_name, 'rviz'), glob(os.path.join('rviz', '*.rviz'))),
         # Include all urdf files.
         (os.path.join('share', package_name, 'urdf'), glob(os.path.join('urdf', '*.urdf'))),
+        # Include all world files.
+        (os.path.join('share', package_name, 'world'), glob(os.path.join('world', '*.sdf'))),
     ],
     install_requires=['setuptools'],
     zip_safe=True,

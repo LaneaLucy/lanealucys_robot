@@ -1,0 +1,13 @@
+[Unit]
+Description=FastDDS Discovery Server
+After=network.target NetworkManager.service
+
+[Service]
+Environment="HOME=root"
+ExecStart=/bin/bash -c 'source /root/ros_ws/install/setup.bash; fastdds discovery --server-id 0'
+Type=simple
+Restart=on-failure
+
+
+[Install]
+WantedBy=multi-user.target

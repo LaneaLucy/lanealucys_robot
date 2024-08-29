@@ -1,0 +1,14 @@
+[Unit]
+Description=Lanealucys_robot
+Wants=fastdds_discovery_server.service
+
+[Service]
+Environment="HOME=root"
+#Environment="ROS_DISCOVERY_SERVER=127.0.0.1:11811"
+ExecStart=/bin/bash -c 'source /root/ros_ws/install/setup.bash; ros2 launch lanealucys_robot robot_launch.py nav2:=true slam:="slam_toolbox" sim:=false rviz_nav2:=false'
+Type=simple
+Restart=on-failure
+
+
+[Install]
+WantedBy=multi-user.target

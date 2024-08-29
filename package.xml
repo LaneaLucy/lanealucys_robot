@@ -11,7 +11,7 @@
   <exec_depend>nav2_bringup</exec_depend>
   <exec_depend>slam_toolbox</exec_depend>
   <!--<exec_depend>cartographer_ros</exec_depend>-->
-  <exec_depend>rviz2</exec_depend>
+  <!--<exec_depend>rviz2</exec_depend>-->
   <!--<exec_depend>ardupilot_gz_bringup</exec_depend>-->
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>

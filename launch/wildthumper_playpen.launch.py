@@ -51,6 +51,7 @@ def generate_launch_description():
     pkg_project_bringup = get_package_share_directory("ardupilot_gz_bringup")
     pkg_project_gazebo = get_package_share_directory("ardupilot_gz_gazebo")
     pkg_ros_gz_sim = get_package_share_directory("ros_gz_sim")
+    pkg_lanealucys_robot = get_package_share_directory("lanealucys_robot")
 
     # Wild Thumper rover.
     rover = IncludeLaunchDescription(
@@ -74,7 +75,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             "gz_args": "-v4 -s -r "
-            f'{Path(pkg_project_gazebo) / "worlds" / "wildthumper_playpen.sdf"}'
+            f'{Path(pkg_lanealucys_robot) / "world" / "wildthumper_playpen.sdf"}'
         }.items(),
     )
 
